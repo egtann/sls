@@ -50,10 +50,7 @@ func (c *Client) Log(buf []string) error {
 
 // Write satisfies the io.Writer interface, so a client can be a drop-in
 // replacement for stdout. Logs are written to the external service on a
-// best-effort basis. Write will attempt to contact sls 3 times over a period
-// of several seconds on network errors. After 3 failures, the client drops the
-// logs from sls, but both the error and the dropped logs are recorded
-// internally.
+// best-effort basis.
 func (c *Client) Write(byt []byte) (int, error) {
 	err := c.Log([]string{string(byt)})
 	return len(byt), err
