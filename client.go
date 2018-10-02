@@ -57,7 +57,6 @@ func (c *Client) Log(buf []string) error {
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("expected 200, got %d", resp.StatusCode)
 	}
-	c.log.Printf("sent logs\n")
 	return nil
 }
 
@@ -79,7 +78,6 @@ func (c *Client) Write(byt []byte) (int, error) {
 			return c.Log(buf)
 		})
 		if err == nil {
-			c.log.Printf("wrote buffer\n")
 			return
 		}
 		c.log.Printf("failed log: %s\n", err)
@@ -102,5 +100,4 @@ func (c *Client) Flush() {
 			c.log.Printf("\t> %s\n", l)
 		}
 	}
-	c.log.Printf("flushed buffer\n")
 }
