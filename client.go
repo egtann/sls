@@ -7,38 +7,26 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/eapache/go-resiliency/retrier"
 	"github.com/pkg/errors"
 )
 
 // Client is used to interact with the logging server.
 type Client struct {
-	log    Logger
 	client *http.Client
 	apiKey string
 	url    string
-	len    int
-	maxLen int
-	buf    []string
 }
 
 // NewClient for interacting with sls.
-func NewClient(
-	log Logger,
-	url, apiKey string,
-	timeout time.Duration,
-	maxLen int,
-) *Client {
+func NewClient(url, apiKey string) *Client {
 	return &Client{
-		log:    log,
-		client: &http.Client{Timeout: timeout},
+		client: &http.Client{Timeout: 5 * time.Second},
 		url:    url,
 		apiKey: apiKey,
-		maxLen: maxLen,
 	}
 }
 
-// Log to sls and clear the buffer. This is threadsafe.
+// Log to sls. This is threadsafe.
 func (c *Client) Log(buf []string) error {
 	byt, err := json.Marshal(buf)
 	if err != nil {
@@ -67,43 +55,6 @@ func (c *Client) Log(buf []string) error {
 // logs from sls, but both the error and the dropped logs are recorded
 // internally.
 func (c *Client) Write(byt []byte) (int, error) {
-	c.buf = append(c.buf, string(byt))
-	c.len += len(byt)
-	if c.len < c.maxLen {
-		return len(byt), nil
-	}
-	go func(buf []string) {
-		r := retrier.New(retrier.ExponentialBackoff(3, time.Second), nil)
-		r.Run(func() error {
-			return c.Log(buf)
-		})
-		/*
-			if err == nil {
-				return
-			}
-			// TODO this causes an infinite loop as is
-			c.log.Printf("failed log: %s\n", err)
-			for _, l := range buf {
-				c.log.Printf("\t> %s\n", l)
-			}
-		*/
-	}(c.buf)
-	c.len = 0
-	c.buf = nil
-	return len(byt), nil
-}
-
-// Flush buffer to logs.
-func (c *Client) Flush() {
-	if len(c.buf) == 0 {
-		return
-	}
-	c.Log(c.buf)
-	// TODO this causes an infinite loop as is
-	/*
-		c.log.Printf("failed flush: %s\n", err)
-		for _, l := range c.buf {
-			c.log.Printf("\t> %s\n", l)
-		}
-	*/
+	err := c.Log([]string{string(byt)})
+	return len(byt), err
 }
