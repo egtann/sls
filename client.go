@@ -74,17 +74,21 @@ func (c *Client) Write(byt []byte) (int, error) {
 	}
 	go func(buf []string) {
 		r := retrier.New(retrier.ExponentialBackoff(3, time.Second), nil)
-		err := r.Run(func() error {
+		r.Run(func() error {
 			return c.Log(buf)
 		})
-		if err == nil {
-			return
-		}
-		c.log.Printf("failed log: %s\n", err)
-		for _, l := range buf {
-			c.log.Printf("\t> %s\n", l)
-		}
+		/*
+			if err == nil {
+				return
+			}
+			// TODO this causes an infinite loop as is
+			c.log.Printf("failed log: %s\n", err)
+			for _, l := range buf {
+				c.log.Printf("\t> %s\n", l)
+			}
+		*/
 	}(c.buf)
+	c.len = 0
 	c.buf = nil
 	return len(byt), nil
 }
@@ -94,10 +98,12 @@ func (c *Client) Flush() {
 	if len(c.buf) == 0 {
 		return
 	}
-	if err := c.Log(c.buf); err != nil {
+	c.Log(c.buf)
+	// TODO this causes an infinite loop as is
+	/*
 		c.log.Printf("failed flush: %s\n", err)
 		for _, l := range c.buf {
 			c.log.Printf("\t> %s\n", l)
 		}
-	}
+	*/
 }
