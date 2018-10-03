@@ -26,7 +26,7 @@ type Service struct {
 	apiKey    string
 	log       sls.Logger
 	logfile   *sls.Logfile
-	listeners logChans
+	listeners *logChans
 
 	// mu protects changes to the logfile when rotating or writing to it.
 	mu sync.Mutex
@@ -49,7 +49,7 @@ func NewService(
 		logfile:   logfile,
 		dir:       dir,
 		apiKey:    apiKey,
-		listeners: logChans{chans: map[int]*logChan{}},
+		listeners: &logChans{chans: map[int]*logChan{}},
 	}
 	chain := alice.New()
 	chain = chain.Append(removeTrailingSlash)
@@ -100,8 +100,8 @@ func (srv *Service) execPostLog(w http.ResponseWriter, r *http.Request) error {
 	}
 	data := ""
 	for _, l := range logs {
-		for _, lc := range srv.listeners.chans {
-			srv.log.Printf("open? %t\n", lc.open)
+		if !strings.HasSuffix(l, "\n") {
+			l += "\n"
 		}
 		srv.listeners.Send(l)
 		data += l

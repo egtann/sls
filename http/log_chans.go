@@ -1,7 +1,6 @@
 package http
 
 import (
-	"strings"
 	"sync"
 )
 
@@ -19,10 +18,9 @@ type logChan struct {
 	open bool
 }
 
-func (l logChans) Send(s string) {
-	if !strings.HasSuffix(s, "\n") {
-		s += "\n"
-	}
+func (l *logChans) Send(s string) {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
 	for _, lc := range l.chans {
 		if lc.open {
 			lc.ch <- s
@@ -30,9 +28,7 @@ func (l logChans) Send(s string) {
 	}
 }
 
-// NewChan also reports the ID of the channel, so the caller can later delete
-// the channel and free up resources.
-func (l logChans) NewChan() *logChan {
+func (l *logChans) NewChan() *logChan {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	ch := make(chan string)
@@ -42,7 +38,7 @@ func (l logChans) NewChan() *logChan {
 	return lc
 }
 
-func (l logChans) Delete(c *logChan) {
+func (l *logChans) Delete(c *logChan) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	delete(l.chans, c.id)

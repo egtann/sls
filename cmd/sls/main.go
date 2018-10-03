@@ -40,12 +40,11 @@ func main() {
 	// files outside the retention period
 	go service.EnforceRetentionPolicy(conf.RetainFor)
 
-	writeTimeout := 10 * time.Second
 	srv := &http.Server{
 		Addr:           ":" + conf.Port,
 		Handler:        service.Mux,
 		ReadTimeout:    10 * time.Minute,
-		WriteTimeout:   writeTimeout,
+		WriteTimeout:   0,
 		MaxHeaderBytes: 1 << 20,
 	}
 	go func() {
@@ -54,13 +53,13 @@ func main() {
 		}
 	}()
 	log.Printf("listening on %s\n", conf.Port)
-	gracefulRestart(srv, writeTimeout)
+	gracefulRestart(srv, time.Second)
 }
 
 // gracefulRestart listens for an interrupt or terminate signal. When either is
 // received, it stops accepting new connections and allows all existing
-// connections up to 10 seconds to complete. If connections do not shut down in
-// time, sls exits with 1.
+// connections up to the timeout duration to complete. If connections do not
+// shut down in time, sls exits with 1.
 func gracefulRestart(srv *http.Server, timeout time.Duration) {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
