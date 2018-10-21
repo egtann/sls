@@ -15,6 +15,7 @@ type Client struct {
 	client *http.Client
 	apiKey string
 	url    string
+	errCh  chan<- error
 }
 
 // NewClient for interacting with sls.
@@ -26,32 +27,48 @@ func NewClient(url, apiKey string) *Client {
 	}
 }
 
+func (c *Client) WithErrorChannel(ch chan<- error) *Client {
+	c.errCh = ch
+	return c
+}
+
+func (c *Client) sendErr(err error) {
+	if c.errCh == nil {
+		return
+	}
+	c.errCh <- err
+}
+
 // Log to sls. This is threadsafe.
-func (c *Client) Log(buf []string) error {
+func (c *Client) Log(buf []string) {
 	byt, err := json.Marshal(buf)
 	if err != nil {
-		return errors.Wrap(err, "marshal log buffer")
+		c.sendErr(errors.Wrap(err, "marshal log buffer"))
+		return
 	}
 	req, err := http.NewRequest("POST", c.url+"/log", bytes.NewReader(byt))
 	if err != nil {
-		return errors.Wrap(err, "new request")
+		c.sendErr(errors.Wrap(err, "new request"))
+		return
 	}
 	req.Header.Set("X-API-Key", c.apiKey)
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return errors.Wrap(err, "do")
+		c.sendErr(errors.Wrap(err, "do"))
+		return
 	}
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("expected 200, got %d", resp.StatusCode)
+		c.sendErr(fmt.Errorf("expected 200, got %d", resp.StatusCode))
+		return
 	}
-	return nil
+	return
 }
 
 // Write satisfies the io.Writer interface, so a client can be a drop-in
 // replacement for stdout. Logs are written to the external service on a
 // best-effort basis.
 func (c *Client) Write(byt []byte) (int, error) {
-	err := c.Log([]string{string(byt)})
-	return len(byt), err
+	go c.Log([]string{string(byt)})
+	return len(byt), nil
 }
