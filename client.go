@@ -25,7 +25,7 @@ type Client struct {
 // NewClient for interacting with sls.
 func NewClient(url, apiKey string) *Client {
 	c := &Client{
-		client: &http.Client{Timeout: 2 * time.Second},
+		client: &http.Client{Timeout: 10 * time.Second},
 		url:    url,
 		apiKey: apiKey,
 	}
