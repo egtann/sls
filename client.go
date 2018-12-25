@@ -17,7 +17,7 @@ type Client struct {
 	apiKey        string
 	url           string
 	buf           []string
-	mu            sync.RWMutex
+	mu            sync.Mutex
 	errCh         chan error
 	flushInterval time.Duration
 }
@@ -106,8 +106,8 @@ func (c *Client) sendErr(err error) {
 
 // Log to sls. This is threadsafe.
 func (c *Client) Log(s string) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	if c.flushInterval > 0 {
 		c.buf = append(c.buf, s)
 		return
