@@ -85,14 +85,14 @@ func (srv *Service) handleLog(w http.ResponseWriter, r *http.Request) {
 }
 
 func (srv *Service) postLog(w http.ResponseWriter, r *http.Request) {
-	if err := srv.execPostLog(w, r); err != nil {
+	if err := srv.execPostLog(r); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.Write([]byte("OK"))
 }
 
-func (srv *Service) execPostLog(w http.ResponseWriter, r *http.Request) error {
+func (srv *Service) execPostLog(r *http.Request) error {
 	srv.log.Printf("writing logs\n")
 	logs := []string{}
 	if err := json.NewDecoder(r.Body).Decode(&logs); err != nil {
