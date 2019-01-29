@@ -72,7 +72,6 @@ func (srv *Service) Shutdown() error {
 	return srv.logfile.Close()
 }
 
-// TODO - check for an auth token
 func (srv *Service) handleLog(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
