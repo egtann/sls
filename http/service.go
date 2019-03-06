@@ -22,11 +22,10 @@ import (
 type Service struct {
 	Mux *http.ServeMux
 
-	dir       string
-	apiKey    string
-	log       sls.Logger
-	logfile   *sls.Logfile
-	listeners *logChans
+	dir     string
+	apiKey  string
+	log     sls.Logger
+	logfile *sls.Logfile
 
 	// mu protects changes to the logfile when rotating or writing to it.
 	mu sync.Mutex
@@ -45,11 +44,10 @@ func NewService(
 		return nil, errors.Wrap(err, "new logfile")
 	}
 	srv := &Service{
-		log:       log,
-		logfile:   logfile,
-		dir:       dir,
-		apiKey:    apiKey,
-		listeners: &logChans{chans: map[int]*logChan{}},
+		log:     log,
+		logfile: logfile,
+		dir:     dir,
+		apiKey:  apiKey,
 	}
 	chain := alice.New()
 	chain = chain.Append(removeTrailingSlash)
@@ -73,14 +71,11 @@ func (srv *Service) Shutdown() error {
 }
 
 func (srv *Service) handleLog(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "GET":
-		srv.getLog(w, r)
-	case "POST":
+	if r.Method == "POST" {
 		srv.postLog(w, r)
-	default:
-		http.NotFound(w, r)
+		return
 	}
+	http.NotFound(w, r)
 }
 
 func (srv *Service) postLog(w http.ResponseWriter, r *http.Request) {
@@ -102,61 +97,12 @@ func (srv *Service) execPostLog(r *http.Request) error {
 		if !strings.HasSuffix(l, "\n") {
 			l += "\n"
 		}
-		srv.listeners.Send(l)
 		data += l
 	}
 	srv.mu.Lock()
 	defer srv.mu.Unlock()
 	_, err := srv.logfile.Write([]byte(data))
 	return errors.Wrap(err, "write")
-}
-
-func (srv *Service) getLog(w http.ResponseWriter, r *http.Request) {
-	srv.log.Printf("tailing logs\n")
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
-	f, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "responsewriter not a flusher", http.StatusInternalServerError)
-		return
-	}
-	lc := srv.listeners.NewChan()
-	defer srv.listeners.Delete(lc)
-	errChan := make(chan error)
-
-	srv.log.Printf("streaming logs\n")
-	go streamLogs(w, f, lc, errChan)
-	lc.open = true
-
-	// Keep alive while streaming
-	srv.log.Printf("keeping alive\n")
-	select {
-	case err := <-errChan:
-		if isClosed(err) {
-			// The client is no longer listening
-			srv.log.Printf("closed tail connection\n")
-		} else {
-			// TODO notify via ErrorReporter
-			srv.log.Printf("write: %s\n", err)
-		}
-	}
-}
-
-func streamLogs(
-	w http.ResponseWriter,
-	f http.Flusher,
-	lc *logChan,
-	errChan chan<- error,
-) {
-	for l := range lc.ch {
-		_, err := w.Write([]byte(l))
-		if err != nil {
-			errChan <- err
-			return
-		}
-		f.Flush()
-	}
 }
 
 func isClosed(err error) bool {

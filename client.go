@@ -46,9 +46,8 @@ func (c *Client) WithFlushInterval(dur time.Duration) (*Client, func()) {
 }
 
 // marshalBuffer to JSON. If the buffer is empty, marshalBuffer reports nil.
+// This is not thread-safe, so protect any call with a mutex.
 func (c *Client) marshalBuffer() ([]byte, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
 	if len(c.buf) == 0 {
 		return nil, nil
 	}
@@ -63,6 +62,9 @@ func (c *Client) marshalBuffer() ([]byte, error) {
 // flush the log buffer to the server. This happens automatically over time if
 // WithFlushInterval is called.
 func (c *Client) flush() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	byt, err := c.marshalBuffer()
 	if err != nil {
 		c.sendErr(errors.Wrap(err, "marshal buffer"))
@@ -83,6 +85,7 @@ func (c *Client) flush() {
 		c.sendErr(errors.Wrap(err, "do"))
 		return
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		c.sendErr(fmt.Errorf("expected 200, got %d", resp.StatusCode))
 		return
@@ -107,12 +110,16 @@ func (c *Client) sendErr(err error) {
 // Log to sls. This is threadsafe.
 func (c *Client) Log(s string) {
 	c.mu.Lock()
-	defer c.mu.Unlock()
 	if c.flushInterval > 0 {
 		c.buf = append(c.buf, s)
+		c.mu.Unlock()
 		return
 	}
+
+	// Don't buffer, flush immediately. Flush locks the mutex, so we unlock
+	// before flush is called.
 	c.buf = []string{s}
+	c.mu.Unlock()
 	c.flush()
 }
 
