@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/go-cleanhttp"
 	"github.com/pkg/errors"
 )
 
@@ -24,8 +25,10 @@ type Client struct {
 
 // NewClient for interacting with sls.
 func NewClient(url, apiKey string) *Client {
+	httpClient := cleanhttp.DefaultClient()
+	httpClient.Timeout = 10 * time.Second
 	c := &Client{
-		client: &http.Client{Timeout: 10 * time.Second},
+		client: httpClient,
 		url:    url,
 		apiKey: apiKey,
 	}
