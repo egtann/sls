@@ -4,7 +4,10 @@ github.com/egtann/up v0.0.0-20181002050416-ba3ef296b497 h1:M2znMTuZ/yDvUlVHtmltt
 github.com/egtann/up v0.0.0-20181002050416-ba3ef296b497/go.mod h1:AmEXXdt3kAwkRq7oXO+cSllLsjKkRW823QkQF51b5qI=
 github.com/egtann/up v0.0.0-20181213191807-b320a57d71da h1:MJ1bgfhkuUlczcOus+ykpASz89rBlhdQbbL65H/QpJ8=
 github.com/egtann/up v0.0.0-20181213191807-b320a57d71da/go.mod h1:AmEXXdt3kAwkRq7oXO+cSllLsjKkRW823QkQF51b5qI=
+github.com/egtann/up v0.0.0-20181230025019-46ea6185e2ee h1:no6PS7pO2C05+KNrPEAuMnIVVw+XkIgqlVHVJQpfUfM=
 github.com/egtann/up v0.0.0-20181230025019-46ea6185e2ee/go.mod h1:BvZJThG7x7BtdUvj/vwdW8fJFj1ZDrEwv0Tz9vLNOZo=
+github.com/egtann/up v0.0.0-20190510172642-fc5bc4be8665 h1:FuK1sPzXUH9tHvZnvR3yytA2gEG3clF6LjTPmkJr6Fs=
+github.com/egtann/up v0.0.0-20190510172642-fc5bc4be8665/go.mod h1:BvZJThG7x7BtdUvj/vwdW8fJFj1ZDrEwv0Tz9vLNOZo=
 github.com/hashicorp/go-cleanhttp v0.5.1 h1:dH3aiDG9Jvb5r5+bYHsikaOUIpcM0xvgMXVoDkXMzJM=
 github.com/hashicorp/go-cleanhttp v0.5.1/go.mod h1:JpRdi6/HCYpAwUzNwuwqhbovhLtngrth3wmdIIUrZ80=
 github.com/justinas/alice v0.0.0-20171023064455-03f45bd4b7da h1:5y58+OCjoHCYB8182mpf/dEsq0vwTKPOo4zGfH0xW9A=
