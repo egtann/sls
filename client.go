@@ -14,13 +14,20 @@ import (
 
 // Client is used to interact with the logging server.
 type Client struct {
-	client        *http.Client
+	client        HTTPClient
 	apiKey        string
 	url           string
 	buf           []string
 	mu            sync.Mutex
 	errCh         chan error
 	flushInterval time.Duration
+}
+
+// HTTPClient is satisfied by *http.Client but enables us to pass in
+// alternative http clients as well with different features (such as automatic
+// retries or allowing host-based communication over a LAN).
+type HTTPClient interface {
+	Do(*http.Request) (*http.Response, error)
 }
 
 // NewClient for interacting with sls.
@@ -32,6 +39,11 @@ func NewClient(url, apiKey string) *Client {
 		url:    url,
 		apiKey: apiKey,
 	}
+	return c
+}
+
+func (c *Client) WithHTTPClient(client HTTPClient) *Client {
+	c.client = client
 	return c
 }
 
