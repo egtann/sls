@@ -4,12 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"sync"
 	"time"
-
-	"github.com/hashicorp/go-cleanhttp"
-	"github.com/pkg/errors"
 )
 
 // Client is used to interact with the logging server.
@@ -32,7 +30,24 @@ type HTTPClient interface {
 
 // NewClient for interacting with sls.
 func NewClient(url, apiKey string) *Client {
-	httpClient := cleanhttp.DefaultClient()
+	// These settings are lifted from Hashicorp's cleanhttp package.
+	httpClient := &http.Client{
+		Transport: &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
+			DialContext: (&net.Dialer{
+				Timeout:   30 * time.Second,
+				KeepAlive: 30 * time.Second,
+				DualStack: true,
+			}).DialContext,
+			MaxIdleConns:          100,
+			IdleConnTimeout:       90 * time.Second,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+			MaxIdleConnsPerHost:   -1,
+			DisableKeepAlives:     true,
+		},
+		Timeout: 10 * time.Second,
+	}
 	httpClient.Timeout = 10 * time.Second
 	c := &Client{
 		client: httpClient,
@@ -69,7 +84,7 @@ func (c *Client) marshalBuffer() ([]byte, error) {
 	byt, err := json.Marshal(c.buf)
 	c.buf = []string{}
 	if err != nil {
-		return nil, errors.Wrap(err, "marshal log buffer")
+		return nil, fmt.Errorf("marshal log buffer: %w", err)
 	}
 	return byt, nil
 }
@@ -82,7 +97,7 @@ func (c *Client) flush() {
 
 	byt, err := c.marshalBuffer()
 	if err != nil {
-		c.sendErr(errors.Wrap(err, "marshal buffer"))
+		c.sendErr(fmt.Errorf("marshal buffer: %w", err))
 		return
 	}
 	if len(byt) == 0 {
@@ -90,14 +105,14 @@ func (c *Client) flush() {
 	}
 	req, err := http.NewRequest("POST", c.url+"/log", bytes.NewReader(byt))
 	if err != nil {
-		c.sendErr(errors.Wrap(err, "new request"))
+		c.sendErr(fmt.Errorf("new request: %w", err))
 		return
 	}
 	req.Header.Set("X-API-Key", c.apiKey)
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := c.client.Do(req)
 	if err != nil {
-		c.sendErr(errors.Wrap(err, "do"))
+		c.sendErr(fmt.Errorf("do: %w", err))
 		return
 	}
 	defer resp.Body.Close()

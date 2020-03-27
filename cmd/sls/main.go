@@ -11,8 +11,7 @@ import (
 	"syscall"
 	"time"
 
-	slsHTTP "github.com/egtann/sls/http"
-	"github.com/egtann/up"
+	slsHTTP "git.sr.ht/~egtann/sls/http"
 )
 
 func main() {
@@ -24,13 +23,9 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	version, err := up.GetCalculatedChecksum("checksum")
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	// TODO - load an error reporter and pass into ServeNewMux
-	service, err := slsHTTP.NewService(log, conf.Dir, conf.APIKey, version)
+	service, err := slsHTTP.NewService(log, conf.Dir)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -2,26 +2,24 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
 type config struct {
 	RetainFor time.Duration
 	Dir       string
 	Port      string
-	APIKey    string
 }
 
 func loadConfig(pth string) (*config, error) {
 	fi, err := os.Open(pth)
 	if err != nil {
-		return nil, errors.Wrap(err, "open")
+		return nil, fmt.Errorf("open: %w", err)
 	}
 	defer fi.Close()
 	c := config{}
@@ -59,19 +57,14 @@ func loadConfig(pth string) (*config, error) {
 				return nil, fmt.Errorf("%s RETAIN_FOR_DAYS must be int", val)
 			}
 			c.RetainFor = time.Duration(i) * 24 * time.Hour
-		case "API_KEY":
-			c.APIKey = val
 		default:
 			return nil, fmt.Errorf("unknown config key: %s", key)
 		}
 	}
 	if err = scn.Err(); err != nil {
-		return nil, errors.Wrap(err, "scan")
+		return nil, fmt.Errorf("scan: %w", err)
 	}
 	errMsg := ""
-	if c.APIKey == "" {
-		errMsg += "missing API_KEY\n"
-	}
 	if c.RetainFor == time.Duration(0) {
 		errMsg += "missing RETAIN_FOR_DAYS\n"
 	}
